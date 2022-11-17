@@ -61,7 +61,7 @@ func main() {
 	var offers []Offer
 	var data Data
 
-	json.Unmarshal(bodyOffer, &offers)
+	json.Unmarshal(bodyOffer, &offers) //isto vraca error
 	json.Unmarshal(bodyLeague, &data)
 	// DisplayBets(offers, data)
 	// GetAllLeagues()

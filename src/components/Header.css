@@ -1,0 +1,19 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.header {
+  background: #19191a;
+  display: flex;
+  font-size: 1.2rem;
+}
+.logo {
+  font-size: 28px;
+  text-align: left;
+  padding: 20px;
+  color: white;
+  font-weight: 700;
+  margin-right: 30px;
+}

@@ -1,4 +1,4 @@
-module betting
+module bettingAPI
 
 go 1.19
 

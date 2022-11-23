@@ -1,17 +1,16 @@
 create table leagues(
-	league_id int primary key,  -- starts with 1xxxx
+	league_id int primary key,
 	title varchar(30)
 );
-
 create table offers(
-	offer_id int primary key, -- starts with 2xxxx
+	offer_id int primary key,
     game varchar(40),
-    sport varchar(15),
     time_played varchar(25),
-    tv_channel varchar(10)
+    tv_channel varchar(10),
+    has_statistics bool
 );
 
-create table league_offers( -- relation n:m between league and offer
+create table league_offers(
 	league_id int not null,
     offer_id int not null,
     constraint fk_league_offers_leagues foreign key (league_id) references leagues(league_id),
@@ -19,10 +18,10 @@ create table league_offers( -- relation n:m between league and offer
     constraint pk_league_offers primary key(league_id, offer_id)
 );
 
-create table offer_tips( -- starts with 3xxxx
+create table offer_tips(
 	offer_id int not null,
     tip varchar(25) not null,
-    columne decimal(4,2),
+    coefficient decimal(4,2),
     constraint fk_offer_tips_offers foreign key (offer_id) references offers(offer_id),
     constraint pk_offer_tip primary key(offer_id, tip)
 );

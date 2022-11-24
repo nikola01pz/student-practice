@@ -1,5 +1,10 @@
+drop table league_offers;
+drop table offer_tips;
+drop table offers;
+drop table leagues;
+
 create table leagues(
-	league_id int primary key,
+	league_id int primary key auto_increment,
 	title varchar(30)
 );
 create table offers(

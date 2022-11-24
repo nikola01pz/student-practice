@@ -1,7 +1,6 @@
 package models
 
 import (
-	"bettingAPI/pkg/config"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -25,26 +24,31 @@ type Elaboration struct {
 }
 
 type Offer struct {
-	Number        string    `json:"broj"`
-	ID            int       `json:"id"`
-	Name          string    `json:"naziv"`
-	Time          time.Time `json:"vrijeme"`
-	Tips          []Tip     `json:"tecajevi"`
-	TvChannel     string    `json:"tv_kanal,omitempty"`
-	HasStatistics bool      `json:"ima_statistiku,omitempty"`
+	Number        string `json:"broj"`
+	ID            int    `json:"id"`
+	Name          string `json:"naziv"`
+	Time          string `json:"vrijeme"`
+	Tips          []Tip  `json:"tecajevi"`
+	TvChannel     string `json:"tv_kanal,omitempty"`
+	HasStatistics bool   `json:"ima_statistiku,omitempty"`
 }
 
 type Tip struct {
-	Value float64 `json:"tecaj,omitempty"`
 	Name  string  `json:"naziv"`
+	Value float64 `json:"tecaj,omitempty"`
+}
+
+type LeagueOffers struct {
+	Name   string `json:"title"`
+	Offers []int  `json:"ponude"`
+}
+
+type LeagueOffer struct {
+	Name  string `json:"title"`
+	Offer int    `json:"ponude"`
 }
 
 var DB *sql.DB
-
-func init() {
-	config.ConnectDB()
-	DB = config.GetDB()
-}
 
 func GetJson(url string, target interface{}) error {
 	var client = &http.Client{Timeout: 10 * time.Second}
@@ -83,7 +87,7 @@ func GetAllOffers() []Offer {
 }
 
 func InsertOffers(offers []Offer, db *sql.DB) {
-	query := "INSERT INTO `bettingdb`.`offers` VALUES (?,?,?,?,?)"
+	query := "INSERT INTO `bettingdb`.`offers`(offer_id, game, time_played, tv_channel, has_statistics) VALUES (?,?,?,?,?)"
 
 	for i := range offers {
 		_, err := db.Exec(query, offers[i].ID, offers[i].Name, offers[i].Time, offers[i].TvChannel, offers[i].HasStatistics)
@@ -95,13 +99,46 @@ func InsertOffers(offers []Offer, db *sql.DB) {
 }
 
 func InsertLeagues(leagues *Data, db *sql.DB) {
-	query := "INSERT INTO `bettingdb`.`leagues` VALUES (?,?)"
+	query := "INSERT INTO `bettingdb`.`leagues`(title) VALUES (?)"
 
 	for i := range leagues.Leagues {
-		_, err := db.Exec(query, i, leagues.Leagues[i].Name)
+		_, err := db.Exec(query, leagues.Leagues[i].Name)
 		if err != nil {
 			log.Fatalf("impossible to insert offers: %s", err)
 		}
 	}
 	fmt.Printf("Offers inserted into DB\n")
+}
+
+func InsertTips(offers []Offer, db *sql.DB) {
+	query := "INSERT INTO `bettingdb`.`offer_tips` VALUES (?,?,?)"
+
+	for i := range offers {
+		for j := range offers[i].Tips {
+			_, err := db.Exec(query, offers[i].ID, offers[i].Tips[j].Name, offers[i].Tips[j].Value)
+			if err != nil {
+				log.Fatalf("impossible to insert tips: %s", err)
+			}
+		}
+	}
+}
+
+func InsertLeagueOffers(leagues *Data, offers []Offer, db *sql.DB) {
+	query := "INSERT INTO `bettingdb`.`league_offers` VALUES (?,?)"
+	for i := range leagues.Leagues {
+		for j := range leagues.Leagues[i].Elaborations {
+			for k := range leagues.Leagues[i].Elaborations[j].ID {
+				tempID := leagues.Leagues[i].Elaborations[j].ID[k]
+				for n := range offers {
+					if tempID == offers[n].ID {
+						_, err := db.Exec(query, i+1, tempID)
+						if err != nil {
+							log.Fatalf("impossible to insert league offers: %s", err)
+						}
+					}
+				}
+			}
+		}
+	}
+
 }

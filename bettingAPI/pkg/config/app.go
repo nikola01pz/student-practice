@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bettingAPI/pkg/models"
 	"database/sql"
 	"fmt"
 
@@ -28,4 +29,16 @@ var DBClient *sql.DB
 
 func GetDB() *sql.DB {
 	return DBClient
+}
+
+func init() {
+	ConnectDB()
+	var db = GetDB()
+	// defer DBClient.Close()
+	var leagues = models.GetAllLeagues()
+	var offers = models.GetAllOffers()
+	models.InsertLeagues(leagues, db)
+	models.InsertOffers(offers, db)
+	models.InsertTips(offers, db)
+	models.InsertLeagueOffers(leagues, offers, db)
 }

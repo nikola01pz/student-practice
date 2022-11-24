@@ -1,18 +1,16 @@
 package main
 
 import (
-	"bettingAPI/pkg/config"
-	"bettingAPI/pkg/models"
+	"bettingAPI/pkg/router"
+	"log"
+	"net/http"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
 
-	var db = config.GetDB()
-	var leagues = models.GetAllLeagues()
-	var offers = models.GetAllOffers()
-	models.InsertLeagues(leagues, db)
-	models.InsertOffers(offers, db)
+	r := router.Router()
+	log.Fatal(http.ListenAndServe("localhost:5000", r))
 
 }

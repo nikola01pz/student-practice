@@ -24,20 +24,20 @@ function Header() {
     <>
       <div className="header">
         <div className="logo">NewBetting</div>
-        <Button onClick={handleLoginDialog}>Prijava</Button>
-        <Button onClick={handleRegistrationDialog}>Registracija</Button>
+        <Button onClick={handleLoginDialog}>Login</Button>
+        <Button onClick={handleRegistrationDialog}>Register</Button>
       </div>
 
       {/* login dialog */}
       <div>
         <Dialog open={loginDialogOpen} onClose={handleLoginDialog}>
-          <DialogTitle>Prijava</DialogTitle>
+          <DialogTitle>Login</DialogTitle>
           <DialogContent>
             <TextField
               autoFocus
               margin="dense"
               id="name"
-              label="Korisničko ime / email adresa"
+              label="E-mail"
               type="email"
               fullWidth
               variant="standard"
@@ -46,15 +46,15 @@ function Header() {
               autoFocus
               margin="dense"
               id="password"
-              label="Lozinka"
+              label="Password"
               type="password"
               fullWidth
               variant="standard"
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleLoginDialog}>Odustani</Button>
-            <Button onClick={null}>Prijavi se</Button>
+            <Button onClick={handleLoginDialog}>Quit</Button>
+            <Button onClick={null}>Login</Button>
           </DialogActions>
         </Dialog>
       </div>
@@ -66,11 +66,70 @@ function Header() {
           open={registrationDialogOpen}
           onClose={handleRegistrationDialog}
         >
-          <DialogTitle>Registririraj se</DialogTitle>
-          <DialogContent></DialogContent>
+          <DialogTitle>Register</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="email"
+              label="E-mail"
+              type="email"
+              fullWidth
+              variant="standard"
+            />
+
+            <TextField
+              autoFocus
+              margin="dense"
+              id="username"
+              label="Username"
+              type="text"
+              fullWidth
+              variant="standard"
+            />
+
+            <TextField
+              autoFocus
+              margin="dense"
+              id="password"
+              label="Password"
+              type="text"
+              fullWidth
+              variant="standard"
+            />
+
+            <TextField
+              autoFocus
+              margin="dense"
+              id="name"
+              label="Name"
+              type="text"
+              fullWidth
+              variant="standard"
+            />
+
+            <TextField
+              autoFocus
+              margin="dense"
+              id="surname"
+              label="Surname"
+              type="text"
+              fullWidth
+              variant="standard"
+            />
+
+            <TextField
+              autoFocus
+              margin="dense"
+              id="dateOfBirth"
+              type="date"
+              fullWidth
+              variant="standard"
+            />
+          </DialogContent>
           <DialogActions>
-            <Button onClick={handleRegistrationDialog}>Odustani</Button>
-            <Button onClick={null}>Registriraj se</Button>
+            <Button onClick={handleRegistrationDialog}>Quit</Button>
+            <Button onClick={null}>Register</Button>
           </DialogActions>
         </Dialog>
       </div>

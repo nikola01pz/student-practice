@@ -60,7 +60,6 @@ function Header() {
       </div>
 
       {/* registration dialog */}
-
       <div>
         <Dialog
           open={registrationDialogOpen}

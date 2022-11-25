@@ -11,34 +11,26 @@ import {
 
 function Header() {
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
-  const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
+  const [registrationDialogOpen, setRegisterDialogOpen] = useState(false);
 
-  //funkcija koje ce otvoriti dijalog prilikom klika na login button iz headera
-  const openLoginDialog = () => {
-    setLoginDialogOpen(true);
+  const handleLoginDialog = () => {
+    setLoginDialogOpen(!loginDialogOpen);
   };
 
-  // TODO: ovdje na analogan nacin napravi funkciju za otvarnje dijaloga za registraciju
-
-  // funkcije koje ce zatvoriti dijalog prilikom klika na login button iz headera
-  const closeLoginDialog = () => {
-    setLoginDialogOpen(false);
+  const handleRegistrationDialog = () => {
+    setRegisterDialogOpen(!registrationDialogOpen);
   };
-
-  // TODO: ovdje na analogan nacin napravi funkciju za zatvaranje dijaloga za registraciju
-
   return (
     <>
       <div className="header">
         <div className="logo">NewBetting</div>
-        <Button onClick={openLoginDialog}>Prijava</Button>
-        {/* ovdje dolje u onClick ubaci funkciju kojom ce se otvoriti registracijski dijalog */}
-        <Button onClick={null}>Registracija</Button>
+        <Button onClick={handleLoginDialog}>Prijava</Button>
+        <Button onClick={handleRegistrationDialog}>Registracija</Button>
       </div>
 
       {/* login dialog */}
       <div>
-        <Dialog open={loginDialogOpen} onClose={closeLoginDialog}>
+        <Dialog open={loginDialogOpen} onClose={handleLoginDialog}>
           <DialogTitle>Prijava</DialogTitle>
           <DialogContent>
             <TextField
@@ -61,15 +53,26 @@ function Header() {
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={closeLoginDialog}>Odustani</Button>
-            {/* zasad "prijavi se" button nista ne radi, tu ces kasnije (kada dodjes do tog todo-a) dodati funkciju koja ce slati HTTP request na backend; zato zasad stavljamo funkciju na klik da bude null */}
+            <Button onClick={handleLoginDialog}>Odustani</Button>
             <Button onClick={null}>Prijavi se</Button>
           </DialogActions>
         </Dialog>
       </div>
 
+      {/* registration dialog */}
+
       <div>
-        {/* na analogan nacin napravi ovdje registration Dialog komponentu i neka u njemu budu sva polja koja su zadana u Basecamp todo-u */}
+        <Dialog
+          open={registrationDialogOpen}
+          onClose={handleRegistrationDialog}
+        >
+          <DialogTitle>Registririraj se</DialogTitle>
+          <DialogContent></DialogContent>
+          <DialogActions>
+            <Button onClick={handleRegistrationDialog}>Odustani</Button>
+            <Button onClick={null}>Registriraj se</Button>
+          </DialogActions>
+        </Dialog>
       </div>
     </>
   );

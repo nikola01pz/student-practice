@@ -90,6 +90,10 @@ export default function OfferSidebar() {
     ],
   };
 
+  const mzObj = { lige: [{naziv: "moja liga" }]};
+
+  console.log(offerHardCoded);
+
   // mala pomoc u razumijevanju responsea:
   //   {"lige": [{"ime-lige" : "moja-liga"}, {"ime-lige": "druga-liga"}]}
   // istraziti map funkciju u JS
@@ -112,5 +116,5 @@ export default function OfferSidebar() {
     //   }
   }, []);
 
-  return console.log(offerHardCoded);
+  return <>Ponuda: {mzObj.lige[0].naziv}</>;
 }

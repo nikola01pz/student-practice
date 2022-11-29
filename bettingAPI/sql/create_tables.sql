@@ -10,7 +10,7 @@ create table leagues(
 create table offers(
 	offer_id int primary key,
     game varchar(40),
-    time_played varchar(25),
+    time_played datetime,
     tv_channel varchar(10),
     has_statistics bool
 );

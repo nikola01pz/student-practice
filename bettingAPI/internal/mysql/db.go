@@ -67,7 +67,6 @@ type LeagueOffers struct {
 }
 
 type OfferByID struct {
-	ID            int    `json:"id"`
 	Name          string `json:"game"`
 	Time          string `json:"time"`
 	TvChannel     string `json:"tv_channel"`
@@ -155,20 +154,12 @@ func (d *db) GetLeagueOffers() []LeagueOffers {
 	return leagueOffers
 }
 
-func (d *db) GetOfferByID() *[]OfferByID {
-	rowsOffers, err := d.conn.Query("SELECT * from `bettingdb`.`offers`")
+func (d *db) GetOfferByID(offerID int) interface{} {
+	var offer OfferByID
+	row := d.conn.QueryRow("SELECT game, time_played, tv_channel, has_statistics from `bettingdb`.`offers` where `bettingdb`.`offers`.`offer_id`=?", offerID)
+	err := row.Scan(&offer.Name, &offer.Time, &offer.TvChannel, &offer.HasStatistics)
 	if err != nil {
-		panic(err.Error())
+		log.Fatalf("Error getting offer by id: %s", err)
 	}
-	defer rowsOffers.Close()
-	var offers []OfferByID
-
-	for rowsOffers.Next() {
-		var offer OfferByID
-		if err := rowsOffers.Scan(&offer.ID, &offer.Name, &offer.Time, &offer.TvChannel, &offer.HasStatistics); err != nil {
-			panic(err.Error())
-		}
-		offers = append(offers, offer)
-	}
-	return &offers
+	return offer
 }

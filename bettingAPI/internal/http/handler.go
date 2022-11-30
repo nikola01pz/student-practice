@@ -3,6 +3,7 @@ package http
 import (
 	"bettingAPI/internal/mysql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -19,12 +20,10 @@ func GetLeagueOffers(w http.ResponseWriter, r *http.Request) {
 func GetOffer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
-	var offers = mysql.NewDB().GetOfferByID()
-	for _, item := range *offers {
-		if strconv.Itoa(item.ID) == params["id"] {
-			json.NewEncoder(w).Encode(item)
-			return
-		}
+	offerID, err := strconv.Atoi(params["id"])
+	if err != nil {
+		log.Fatalf("Error converting id from string to int: %s", err)
 	}
-	json.NewEncoder(w).Encode("No offer found with given id")
+	offer := mysql.NewDB().GetOfferByID(offerID)
+	json.NewEncoder(w).Encode(offer)
 }

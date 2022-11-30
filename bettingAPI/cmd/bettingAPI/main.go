@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	// db := NewDB()
+	// db := mysql.NewDB()
 	// hdl := NewHandler(db)
 
 	GetAllOffersFromHTTP()

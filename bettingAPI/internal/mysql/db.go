@@ -19,13 +19,12 @@ func NewDB() *db {
 func ConnectDB() *sql.DB {
 	db, err := sql.Open("mysql", "root:Lozinka123#@tcp(localhost:3306)/bettingdb")
 	if err != nil {
-		panic(err.Error())
+		log.Fatal()
 	}
 
 	err = db.Ping()
 	if err != nil {
-		fmt.Println("error connecting")
-		panic(err.Error())
+		log.Fatalf("Error connectiong to DB: %s", err)
 	} else {
 		fmt.Println("Connected to DB")
 	}
@@ -76,85 +75,84 @@ type OfferByID struct {
 }
 
 func (d *db) InsertOffers(offers []Offer) {
-	query := "INSERT INTO `bettingdb`.`offers`(offer_id, game, time_played, tv_channel, has_statistics) VALUES (?,?,?,?,?)"
+	query := "INSERT INTO `bettingdb`.`offers`(offer_id, game, time_played, tv_channel, has_statistics) SELECT ?,?,?,?,? WHERE NOT EXISTS(SELECT * FROM `bettingdb`.`offers` WHERE offer_id=?)"
 
 	for i := range offers {
-		_, err := d.conn.Exec(query, offers[i].ID, offers[i].Name, offers[i].Time, offers[i].TvChannel, offers[i].HasStatistics)
+		_, err := d.conn.Exec(query, offers[i].ID, offers[i].Name, offers[i].Time, offers[i].TvChannel, offers[i].HasStatistics, offers[i].ID)
 		if err != nil {
-			log.Fatalf("impossible to insert leagues: %s", err)
+			log.Fatalf("impossible to insert offers: %s", err)
 		}
 	}
 	fmt.Printf("Leagues inserted into DB\n")
 }
 
 func (d *db) InsertLeagues(leagues *LeaguesData) {
-	query := "INSERT INTO `bettingdb`.`leagues`(title) VALUES (?)"
+	query := "INSERT INTO `bettingdb`.`leagues`(title) SELECT ? WHERE NOT EXISTS(SELECT * FROM `bettingdb`.`leagues` WHERE `bettingdb`.`leagues`.`title`=?)"
 
 	for i := range leagues.Leagues {
-		_, err := d.conn.Exec(query, leagues.Leagues[i].Name)
+		res, err := d.conn.Exec(query, leagues.Leagues[i].Name, leagues.Leagues[i].Name)
 		if err != nil {
-			log.Fatalf("impossible to insert offers: %s", err)
+			log.Fatalf("Impossible to insert leagues: %s", err)
+		}
+		q := "INSERT INTO `bettingdb`.`league_offers`(league_id, offer_id) SELECT ?,? WHERE NOT EXISTS(SELECT * FROM `bettingdb`.`league_offers` WHERE `bettingdb`.`league_offers`.`offer_id`=?)"
+		league_id, err := res.LastInsertId()
+		if err != nil {
+			log.Fatalf("Impossible to get last insert id: %s", err)
+		}
+		for j := range leagues.Leagues[i].Elaborations {
+			for k := range leagues.Leagues[i].Elaborations[j].ID {
+				_, err := d.conn.Exec(q, league_id, leagues.Leagues[i].Elaborations[j].ID[k], leagues.Leagues[i].Elaborations[j].ID[k])
+				if err != nil {
+					log.Fatalf("Impossible to insert league offer: %s", err)
+				}
+			}
 		}
 	}
 	fmt.Printf("Offers inserted into DB\n")
 }
 
 func (d *db) InsertTips(offers []Offer) {
-	query := "INSERT INTO `bettingdb`.`offer_tips` VALUES (?,?,?)"
+	query := "INSERT INTO `bettingdb`.`offer_tips`(offer_id, tip, coefficient) SELECT ?,?,? WHERE NOT EXISTS(SELECT * FROM `bettingdb`.`offer_tips` WHERE `bettingdb`.`offer_tips`.`offer_id`=? AND `bettingdb`.`offer_tips`.`tip`=?)"
 
 	for i := range offers {
 		for j := range offers[i].Tips {
-			_, err := d.conn.Exec(query, offers[i].ID, offers[i].Tips[j].Name, offers[i].Tips[j].Value)
+			_, err := d.conn.Exec(query, offers[i].ID, offers[i].Tips[j].Name, offers[i].Tips[j].Value, offers[i].ID, offers[i].Tips[j].Name)
 			if err != nil {
-				log.Fatalf("impossible to insert tips: %s", err)
+				log.Fatalf("Impossible to insert tips: %s", err)
 			}
 		}
 	}
 }
 
-func (d *db) InsertLeagueOffers(leagues *LeaguesData) {
-	query := "INSERT INTO `bettingdb`.`league_offers` (league_id, offer_id) SELECT league_id, offer_id FROM `bettingdb`.`leagues`,`bettingdb`.`offers` WHERE `bettingdb`.`offers`.`offer_id`=? and `bettingdb`.`leagues`.`title`=?"
-	for i := range leagues.Leagues {
-		for j := range leagues.Leagues[i].Elaborations {
-			for k := range leagues.Leagues[i].Elaborations[j].ID {
-				_, err := d.conn.Exec(query, leagues.Leagues[i].Elaborations[j].ID[k], leagues.Leagues[i].Name)
-				if err != nil {
-					log.Fatalf("impossible to insert league_offers: %s", err)
-				}
-			}
-		}
-	}
-}
-
-func (d *db) GetLeagueOffers() *[]LeagueOffers {
+func (d *db) GetLeagueOffers() []LeagueOffers {
 	rowsLeagues, err := d.conn.Query("SELECT * FROM `bettingdb`.`leagues`")
 	if err != nil {
-		panic(err.Error())
+		log.Fatalf("Impossible to scan from leagues table: %s", err)
 	}
 	defer rowsLeagues.Close()
 	var leagueOffers []LeagueOffers
 	for rowsLeagues.Next() {
 		var league LeagueOffers
 		if err := rowsLeagues.Scan(&league.ID, &league.Title); err != nil {
-			panic(err.Error())
+			log.Fatalf("Impossible to scan from leagues table: %s", err)
 		}
 		leagueOffers = append(leagueOffers, league)
 	}
 	for i := range leagueOffers {
 		rowsOffers, err := d.conn.Query("SELECT offer_id FROM `bettingdb`.`league_offers` WHERE `bettingdb`.`league_offers`.`league_id`=?", leagueOffers[i].ID)
 		if err != nil {
-			panic(err.Error())
+			log.Fatalf("Impossible to select from league_offers table: %s", err)
 		}
 		defer rowsOffers.Close()
 		for rowsOffers.Next() {
 			var Offer int
 			if err := rowsOffers.Scan(&Offer); err != nil {
-				panic(err.Error())
+				log.Fatalf("Impossible to scan from league_offers table: %s", err)
 			}
 			leagueOffers[i].Offers = append(leagueOffers[i].Offers, Offer)
 		}
 	}
-	return &leagueOffers
+	return leagueOffers
 }
 
 func (d *db) GetOfferByID() *[]OfferByID {

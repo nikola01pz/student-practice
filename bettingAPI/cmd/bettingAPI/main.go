@@ -3,6 +3,7 @@ package main
 import (
 	bethttp "bettingAPI/internal/http"
 	"bettingAPI/internal/mysql"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,30 +13,50 @@ import (
 )
 
 func main() {
+	// db := NewDB()
+	// hdl := NewHandler(db)
+
 	GetAllOffersFromHTTP()
-	var leagues = GetAllLeaguesFromHTTP()
-	mysql.NewDB().InsertLeagueOffers(leagues)
+	GetAllLeaguesFromHTTP()
 
 	router := mux.NewRouter()
 	router.HandleFunc("/league-offers", bethttp.GetLeagueOffers).Methods("GET")
 	router.HandleFunc("/offer/{id}", bethttp.GetOffer).Methods("GET")
-
 	log.Fatal(http.ListenAndServe("localhost:5000", router))
+}
 
+type bettingDB struct {
+	conn *sql.DB
+}
+
+func NewDB() *bettingDB {
+	return &bettingDB{
+		conn: mysql.ConnectDB(),
+	}
+}
+
+type handler struct {
+	db *bettingDB
+}
+
+func NewHandler(d *bettingDB) *handler {
+	return &handler{
+		db: d,
+	}
 }
 
 func GetAllLeaguesFromHTTP() *mysql.LeaguesData {
 	url := "https://minus5-dev-test.s3.eu-central-1.amazonaws.com/lige.json"
-	var leagues mysql.LeaguesData
+	var leagues *mysql.LeaguesData
 	err := bethttp.GetJson(url, &leagues)
 	if err != nil {
-		fmt.Printf("Error getting leagues: %s\n", err.Error())
+		log.Fatalf("impossible to get leagues from http: %s", err)
 	} else {
 		fmt.Printf("Leagues from web have been reached\n")
 	}
 
-	mysql.NewDB().InsertLeagues(&leagues)
-	return &leagues
+	mysql.NewDB().InsertLeagues(leagues)
+	return leagues
 }
 
 func GetAllOffersFromHTTP() {
@@ -43,7 +64,7 @@ func GetAllOffersFromHTTP() {
 	var offers []mysql.Offer
 	err := bethttp.GetJson(url, &offers)
 	if err != nil {
-		fmt.Printf("Error getting offers: %s\n", err.Error())
+		log.Fatalf("impossible to get offers from http: %s", err)
 	} else {
 		fmt.Printf("Offers from web have been reached\n")
 	}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./Header.css";
+import "../styles/Header.css";
 import {
   Dialog,
   DialogTitle,
@@ -20,6 +20,7 @@ function Header() {
   const handleRegistrationDialog = () => {
     setRegisterDialogOpen(!registrationDialogOpen);
   };
+
   return (
     <>
       <div className="header">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import "../styles/Offer.css";
 
 export default function OfferSidebar() {
   const [offer, setOffer] = useState({});
@@ -90,7 +91,16 @@ export default function OfferSidebar() {
     ],
   };
 
-  const mzObj = { lige: [{naziv: "moja liga" }]};
+  // const mzObj = {
+  //   lige: [
+  //     { naziv: "moja liga", ponuda: "moja ponuda", vrsta: "moja vrsta" },
+  //     {
+  //       naziv: "moja nova liga",
+  //       novaPonuda: "moja nova ponuda",
+  //       novaVrsta: "moja nova vrsta",
+  //     },
+  //   ],
+  // };
 
   console.log(offerHardCoded);
 
@@ -116,5 +126,43 @@ export default function OfferSidebar() {
     //   }
   }, []);
 
-  return <>Ponuda: {mzObj.lige[0].naziv}</>;
+  // return <>Ponuda: {mzObj.lige[1].naziv}</>;
+
+  const [offersDialogOpen, setOffersDialogOpen] = useState(false);
+  const handleOffersDialog = (liga) => {
+    console.log(liga);
+    setOffersDialogOpen(true);
+  };
+
+  return (
+    <>
+      <div className="flex-container">
+        <div className="league-sidebar">
+          {offerHardCoded.lige.map((lige, index) => {
+            return (
+              <div
+                className="league-name"
+                key={index}
+                onClick={() => handleOffersDialog(lige)}
+                open={offersDialogOpen}
+                onClose={handleOffersDialog}
+              >
+                <> {lige.naziv} </>
+
+                {/* 
+              {lige.razrade.map((razrade, index) => {
+              return (
+                <div className="razrade-sidebar" key={index}>
+                  <>Razrade: {razrade}</>
+                </div>
+              );
+            })} */}
+              </div>
+            );
+          })}
+        </div>
+        {offersDialogOpen && <div style={{ color: "white" }}> Ponuda</div>}
+      </div>
+    </>
+  );
 }

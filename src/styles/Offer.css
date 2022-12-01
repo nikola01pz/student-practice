@@ -4,11 +4,15 @@
   padding: 0;
 }
 
+body {
+  color: white;
+}
+
 /*PARENT FLEXOBX*/
 .flex-container {
   display: flex;
   flex: 1;
-  background-color: black;
+  background-color: #100c08;
 }
 
 /*LEAGUES SIDEBAR*/
@@ -30,5 +34,17 @@
 .league-name:hover {
   text-decoration: underline;
   font-weight: bold;
-  color: #1976d2;
+  color: #ff2800;
+}
+
+.league-tips {
+  display: flex;
+  flex: 1;
+  margin-left: 800px;
+  cursor: pointer;
+}
+
+.single-tip {
+  padding: 10px;
+  color: #ff2800;
 }

@@ -91,77 +91,58 @@ export default function OfferSidebar() {
     ],
   };
 
-  // const mzObj = {
-  //   lige: [
-  //     { naziv: "moja liga", ponuda: "moja ponuda", vrsta: "moja vrsta" },
-  //     {
-  //       naziv: "moja nova liga",
-  //       novaPonuda: "moja nova ponuda",
-  //       novaVrsta: "moja nova vrsta",
-  //     },
-  //   ],
-  // };
+  // useEffect(() => {}, []);
 
-  console.log(offerHardCoded);
+  const [showOffer, setshowOffer] = useState(false);
+  const [currentlySelectedLeague, setCurrentlySelectedLeague] = useState({});
 
-  // mala pomoc u razumijevanju responsea:
-  //   {"lige": [{"ime-lige" : "moja-liga"}, {"ime-lige": "druga-liga"}]}
-  // istraziti map funkciju u JS
-  // { "key": "value"} - json objekt
-  // "lige" : [] - key value par, ali i: "lige" : "nekitekst" - key value par, ali i:  "lige" : 12  - key value par
-
-  // u ovom slucaju key ce biti array koji sadrzi objekt
-  // iz tog objekta mapirati po odredenom keyu (recimo ime-lige)
-
-  useEffect(() => {
-    //   async function fetchOffer() {
-    //     const response = await fetch(
-    //       url
-    //     );
-    //     console.log("response ", response);
-    //     const json = response.json();
-    //     console.log("json ", json);
-    //     setOffer(offer);
-    //     console.log("offer ", offer);
-    //   }
-  }, []);
-
-  // return <>Ponuda: {mzObj.lige[1].naziv}</>;
-
-  const [offersDialogOpen, setOffersDialogOpen] = useState(false);
   const handleOffersDialog = (liga) => {
+    console.log("liga: ", liga.razrade[0].tipovi);
+    setshowOffer(true);
+    setCurrentlySelectedLeague(liga);
+  };
+
+  const [tipsDialogOpen, setTipsDialogOpen] = useState(false);
+  const handleTipsDialog = (liga) => {
     console.log(liga);
-    setOffersDialogOpen(true);
+    setTipsDialogOpen(true);
   };
 
   return (
     <>
       <div className="flex-container">
         <div className="league-sidebar">
-          {offerHardCoded.lige.map((lige, index) => {
+          {offerHardCoded.lige.map((league, index) => {
             return (
               <div
                 className="league-name"
                 key={index}
-                onClick={() => handleOffersDialog(lige)}
-                open={offersDialogOpen}
+                onClick={() => handleOffersDialog(league)}
+                open={showOffer}
                 onClose={handleOffersDialog}
               >
-                <> {lige.naziv} </>
-
-                {/* 
-              {lige.razrade.map((razrade, index) => {
-              return (
-                <div className="razrade-sidebar" key={index}>
-                  <>Razrade: {razrade}</>
-                </div>
-              );
-            })} */}
+                <> {league.naziv} </>
               </div>
             );
           })}
         </div>
-        {offersDialogOpen && <div style={{ color: "white" }}> Ponuda</div>}
+
+        {showOffer && (
+          <div
+            className="league-tips"
+            onClick={() => handleTipsDialog(currentlySelectedLeague)}
+            open={tipsDialogOpen}
+            onClose={handleTipsDialog}
+          >
+            {currentlySelectedLeague.razrade[0].tipovi.map((tips, index) => {
+              return (
+                <div className="single-tip" key={index}>
+                  <>{tips.naziv}</>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </>
   );

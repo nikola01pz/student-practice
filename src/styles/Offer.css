@@ -1,0 +1,34 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/*PARENT FLEXOBX*/
+.flex-container {
+  display: flex;
+  flex: 1;
+  background-color: black;
+}
+
+/*LEAGUES SIDEBAR*/
+.league-sidebar {
+  width: 30%;
+  text-align: left;
+  padding-top: 50px;
+  margin-left: 20px;
+  display: block;
+}
+
+/*ITEMS IN LEAGUES SIDEBAR*/
+.league-name {
+  padding: 10px;
+  cursor: pointer;
+  color: white;
+}
+
+.league-name:hover {
+  text-decoration: underline;
+  font-weight: bold;
+  color: #1976d2;
+}

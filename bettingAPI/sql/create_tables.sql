@@ -2,6 +2,7 @@ drop table league_offers;
 drop table offer_tips;
 drop table offers;
 drop table leagues;
+drop table users;
 
 create table leagues(
 	league_id int primary key auto_increment,
@@ -29,4 +30,14 @@ create table offer_tips(
     coefficient decimal(4,2),
     constraint fk_offer_tips_offers foreign key (offer_id) references offers(offer_id),
     constraint pk_offer_tip primary key(offer_id, tip)
+);
+
+create table users(
+	user_id int primary key auto_increment,
+    username varchar(25) unique,
+	email varchar(80) unique,
+    first_name varchar(25),
+    last_name varchar(25),
+	birth_date date
+    -- password
 );

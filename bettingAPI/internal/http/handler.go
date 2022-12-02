@@ -10,20 +10,32 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func GetLeagueOffers(w http.ResponseWriter, r *http.Request) {
+type handler struct {
+	db *mysql.DB
+}
+
+func NewHandler(d *mysql.DB) *handler {
+	return &handler{
+		db: d,
+	}
+}
+
+func (h *handler) GetLeagueOffers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	var leagueOffers = mysql.NewDB().GetLeagueOffers()
+	var leagueOffers = h.db.GetLeagueOffers()
 	json.NewEncoder(w).Encode(leagueOffers)
 
 }
 
-func GetOffer(w http.ResponseWriter, r *http.Request) {
+func (h *handler) GetOffer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
 	offerID, err := strconv.Atoi(params["id"])
 	if err != nil {
-		log.Fatalf("Error converting id from string to int: %s", err)
+		log.Printf("Error converting id from string to int: %s", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
-	offer := mysql.NewDB().GetOfferByID(offerID)
+	offer := h.db.GetOfferByID(offerID)
 	json.NewEncoder(w).Encode(offer)
 }

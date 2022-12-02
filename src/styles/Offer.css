@@ -1,0 +1,50 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  color: white;
+}
+
+/*PARENT FLEXOBX*/
+.flex-container {
+  display: flex;
+  flex: 1;
+  background-color: #100c08;
+}
+
+/*LEAGUES SIDEBAR*/
+.league-sidebar {
+  width: 30%;
+  text-align: left;
+  padding-top: 50px;
+  margin-left: 20px;
+  display: block;
+}
+
+/*ITEMS IN LEAGUES SIDEBAR*/
+.league-name {
+  padding: 10px;
+  cursor: pointer;
+  color: white;
+}
+
+.league-name:hover {
+  text-decoration: underline;
+  font-weight: bold;
+  color: #ff2800;
+}
+
+.league-tips {
+  display: flex;
+  flex: 1;
+  margin-left: 800px;
+  cursor: pointer;
+}
+
+.single-tip {
+  padding: 10px;
+  color: #ff2800;
+}

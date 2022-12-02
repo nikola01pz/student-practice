@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./Header.css";
+import "../styles/Header.css";
 import {
   Dialog,
   DialogTitle,
@@ -8,6 +8,8 @@ import {
   Button,
   TextField,
 } from "@mui/material";
+import { green } from "@mui/material/colors";
+import styled from "@emotion/styled";
 
 function Header() {
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
@@ -20,12 +22,39 @@ function Header() {
   const handleRegistrationDialog = () => {
     setRegisterDialogOpen(!registrationDialogOpen);
   };
+
   return (
     <>
       <div className="header">
         <div className="logo">NewBetting</div>
-        <Button onClick={handleLoginDialog}>Login</Button>
-        <Button onClick={handleRegistrationDialog}>Register</Button>
+        <Button
+          className="login-button"
+          sx={{
+            boxShadow: "none",
+            textTransform: "none",
+            fontSize: 20,
+            color: "#ff2800",
+            padding: "6px 12px",
+          }}
+          onClick={handleLoginDialog}
+          variant="text"
+        >
+          Login
+        </Button>
+        <Button
+          className="register-button"
+          sx={{
+            boxShadow: "none",
+            textTransform: "none",
+            fontSize: 20,
+            color: "#ff2800",
+            padding: "6px 12px",
+          }}
+          onClick={handleRegistrationDialog}
+          variant="text"
+        >
+          Register
+        </Button>
       </div>
 
       {/* login dialog */}

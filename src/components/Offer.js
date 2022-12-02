@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import "../styles/Offer.css";
 
 export default function OfferSidebar() {
   const [offer, setOffer] = useState({});
@@ -90,31 +91,59 @@ export default function OfferSidebar() {
     ],
   };
 
-  const mzObj = { lige: [{naziv: "moja liga" }]};
+  // useEffect(() => {}, []);
 
-  console.log(offerHardCoded);
+  const [showOffer, setshowOffer] = useState(false);
+  const [currentlySelectedLeague, setCurrentlySelectedLeague] = useState({});
 
-  // mala pomoc u razumijevanju responsea:
-  //   {"lige": [{"ime-lige" : "moja-liga"}, {"ime-lige": "druga-liga"}]}
-  // istraziti map funkciju u JS
-  // { "key": "value"} - json objekt
-  // "lige" : [] - key value par, ali i: "lige" : "nekitekst" - key value par, ali i:  "lige" : 12  - key value par
+  const handleOffersDialog = (liga) => {
+    console.log("liga: ", liga.razrade[0].tipovi);
+    setshowOffer(true);
+    setCurrentlySelectedLeague(liga);
+  };
 
-  // u ovom slucaju key ce biti array koji sadrzi objekt
-  // iz tog objekta mapirati po odredenom keyu (recimo ime-lige)
+  const [tipsDialogOpen, setTipsDialogOpen] = useState(false);
+  const handleTipsDialog = (liga) => {
+    console.log(liga);
+    setTipsDialogOpen(true);
+  };
 
-  useEffect(() => {
-    //   async function fetchOffer() {
-    //     const response = await fetch(
-    //       url
-    //     );
-    //     console.log("response ", response);
-    //     const json = response.json();
-    //     console.log("json ", json);
-    //     setOffer(offer);
-    //     console.log("offer ", offer);
-    //   }
-  }, []);
+  return (
+    <>
+      <div className="flex-container">
+        <div className="league-sidebar">
+          {offerHardCoded.lige.map((league, index) => {
+            return (
+              <div
+                className="league-name"
+                key={index}
+                onClick={() => handleOffersDialog(league)}
+                open={showOffer}
+                onClose={handleOffersDialog}
+              >
+                <> {league.naziv} </>
+              </div>
+            );
+          })}
+        </div>
 
-  return <>Ponuda: {mzObj.lige[0].naziv}</>;
+        {showOffer && (
+          <div
+            className="league-tips"
+            onClick={() => handleTipsDialog(currentlySelectedLeague)}
+            open={tipsDialogOpen}
+            onClose={handleTipsDialog}
+          >
+            {currentlySelectedLeague.razrade[0].tipovi.map((tips, index) => {
+              return (
+                <div className="single-tip" key={index}>
+                  <>{tips.naziv}</>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
+  );
 }

@@ -43,8 +43,8 @@ type Elaboration struct {
 }
 
 type Tip struct {
-	Name  string
-	Value float64
+	Name  string  `json:"name"`
+	Value float64 `json:"value"`
 }
 
 type Offer struct {
@@ -68,6 +68,7 @@ type OfferByID struct {
 	Time          string `json:"time"`
 	TvChannel     string `json:"tv_channel"`
 	HasStatistics bool   `json:"statistics"`
+	Tips          []Tip  `json:"tips"`
 }
 
 func (d *DB) InsertOffers(offers []source.Offer) {
@@ -162,6 +163,18 @@ func (d *DB) GetOfferByID(offerID int) interface{} {
 	err := row.Scan(&offer.Name, &offer.Time, &offer.TvChannel, &offer.HasStatistics)
 	if err != nil {
 		log.Printf("Error getting offer by id: %s", err)
+	}
+	rowsTips, err := d.conn.Query("select tip, coefficient from `bettingdb`.`offer_tips` where `bettingdb`.`offer_tips`.`offer_id`=?", offerID)
+	if err != nil {
+		log.Printf("Impossible to select from offer_tips table: %s", err)
+	}
+	defer rowsTips.Close()
+	for rowsTips.Next() {
+		var tip Tip
+		if err := rowsTips.Scan(&tip.Name, &tip.Value); err != nil {
+			log.Printf("Impossible to scan from offer_tips table: %s", err)
+		}
+		offer.Tips = append(offer.Tips, tip)
 	}
 	return offer
 }

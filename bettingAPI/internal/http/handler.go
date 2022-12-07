@@ -24,7 +24,6 @@ func (h *handler) GetLeagueOffers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var leagueOffers = h.db.GetLeagueOffers()
 	json.NewEncoder(w).Encode(leagueOffers)
-
 }
 
 func (h *handler) GetOffer(w http.ResponseWriter, r *http.Request) {

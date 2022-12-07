@@ -32,3 +32,12 @@ create table offer_tips(
     constraint pk_offer_tip primary key(offer_id, tip)
 );
 
+create table users(
+	user_id int primary key auto_increment,
+    username varchar(25) unique,
+	email varchar(80) unique,
+    first_name varchar(25),
+    last_name varchar(25),
+	birth_date date
+    -- password
+);

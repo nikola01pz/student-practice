@@ -43,8 +43,8 @@ type Elaboration struct {
 }
 
 type Tip struct {
-	Name  string  `json:"name"`
-	Value float64 `json:"value"`
+	Name  string
+	Value float64
 }
 
 type Offer struct {

@@ -12,6 +12,7 @@ import (
 
 type handler struct {
 	db *mysql.DB
+<<<<<<< HEAD
 }
 
 func NewHandler(d *mysql.DB) *handler {
@@ -26,6 +27,23 @@ func (h *handler) GetLeagueOffers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(leagueOffers)
 }
 
+=======
+}
+
+func NewHandler(d *mysql.DB) *handler {
+	return &handler{
+		db: d,
+	}
+}
+
+func (h *handler) GetLeagueOffers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var leagueOffers = h.db.GetLeagueOffers()
+	json.NewEncoder(w).Encode(leagueOffers)
+
+}
+
+>>>>>>> 485f2c5 (fix multiple connections to database)
 func (h *handler) GetOffer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)

@@ -164,17 +164,5 @@ func (d *DB) GetOfferByID(offerID int) interface{} {
 	if err != nil {
 		log.Printf("Error getting offer by id: %s", err)
 	}
-	rowsTips, err := d.conn.Query("select tip, coefficient from `bettingdb`.`offer_tips` where `bettingdb`.`offer_tips`.`offer_id`=?", offerID)
-	if err != nil {
-		log.Printf("Impossible to select from offer_tips table: %s", err)
-	}
-	defer rowsTips.Close()
-	for rowsTips.Next() {
-		var tip Tip
-		if err := rowsTips.Scan(&tip.Name, &tip.Value); err != nil {
-			log.Printf("Impossible to scan from offer_tips table: %s", err)
-		}
-		offer.Tips = append(offer.Tips, tip)
-	}
 	return offer
 }

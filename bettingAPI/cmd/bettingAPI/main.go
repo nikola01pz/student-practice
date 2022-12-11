@@ -23,5 +23,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/league-offers", hdl.GetLeagueOffers).Methods("GET")
 	router.HandleFunc("/offer/{id}", hdl.GetOffer).Methods("GET")
+	router.HandleFunc("/register", hdl.Register).Methods("POST")
+	router.HandleFunc("/login", hdl.Login).Methods("POST")
 	log.Fatal(http.ListenAndServe("localhost:5000", router))
 }

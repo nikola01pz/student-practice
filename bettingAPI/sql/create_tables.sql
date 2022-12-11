@@ -34,10 +34,10 @@ create table offer_tips(
 
 create table users(
 	user_id int primary key auto_increment,
-    username varchar(25) unique,
-	email varchar(80) unique,
+    username varchar(25),
+	email varchar(80),
+	password_hash varchar(60),
     first_name varchar(25),
     last_name varchar(25),
 	birth_date date
-    -- password
 );

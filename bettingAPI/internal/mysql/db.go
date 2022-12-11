@@ -3,8 +3,10 @@ package mysql
 import (
 	"bettingAPI/internal/source"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
+	"time"
 )
 
 type DB struct {
@@ -69,6 +71,16 @@ type OfferByID struct {
 	TvChannel     string `json:"tv_channel"`
 	HasStatistics bool   `json:"statistics"`
 	Tips          []Tip  `json:"tips"`
+}
+
+type User struct {
+	ID           int       `db:"user_id"`
+	Username     string    `db:"username" `
+	Email        string    `db:"email" `
+	PasswordHash string    `db:"password_hash"`
+	FirstName    string    `db:"first_name"`
+	LastName     string    `db:"last_name"`
+	BirthDate    time.Time `db:"birth_date"`
 }
 
 func (d *DB) InsertOffers(offers []source.Offer) {
@@ -164,7 +176,7 @@ func (d *DB) GetOfferByID(offerID int) interface{} {
 	if err != nil {
 		log.Printf("Error getting offer by id: %s", err)
 	}
-	rowsTips, err := d.conn.Query("select tip, coefficient from `bettingdb`.`offer_tips` where `bettingdb`.`offer_tips`.`offer_id`=?", offerID)
+	rowsTips, err := d.conn.Query("SELECT tip, coefficient FROM `bettingdb`.`offer_tips` WHERE `bettingdb`.`offer_tips`.`offer_id`=?", offerID)
 	if err != nil {
 		log.Printf("Impossible to select from offer_tips table: %s", err)
 	}
@@ -177,4 +189,43 @@ func (d *DB) GetOfferByID(offerID int) interface{} {
 		offer.Tips = append(offer.Tips, tip)
 	}
 	return offer
+}
+
+func (d *DB) IsUsernameUsed(username string) error {
+	row := d.conn.QueryRow("SELECT user_id FROM `bettingdb`.`users` WHERE `bettingdb`.`users`.`username`=?", username)
+	var userID int
+	err := row.Scan(&userID)
+	if err != sql.ErrNoRows {
+		return errors.New("username is used")
+	}
+	return nil
+}
+
+func (d *DB) IsEmailUsed(email string) error {
+	row := d.conn.QueryRow("SELECT email FROM `bettingdb`.`users` WHERE `bettingdb`.`users`.`email`=?", email)
+	var userEmail int
+	err := row.Scan(&userEmail)
+	if err != sql.ErrNoRows {
+		return errors.New("email is already used")
+	}
+	return nil
+}
+
+func (d *DB) StoredUserPassword(user string) string {
+	row := d.conn.QueryRow("SELECT password_hash FROM `bettingdb`.`users` WHERE `bettingdb`.`users`.`email`=? OR `bettingdb`.`users`.`username`=?", user, user)
+	var passwordHash string
+	err := row.Scan(&passwordHash)
+	if err == nil {
+		return passwordHash
+	}
+	return ""
+}
+
+func (d *DB) InsertUser(regReq User) {
+	var user = regReq
+	query := "INSERT INTO `bettingdb`.`users`(username, email,  password_hash, first_name, last_name, birth_date) VALUES(?,?,?,?,?,?)"
+	_, err := d.conn.Exec(query, user.Username, user.Email, user.PasswordHash, user.FirstName, user.LastName, user.BirthDate)
+	if err != nil {
+		log.Printf("impossible to insert offers: %s", err)
+	}
 }

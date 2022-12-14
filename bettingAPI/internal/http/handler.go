@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -22,17 +23,37 @@ func NewHandler(d *mysql.DB) *handler {
 }
 
 type registrationRequest struct {
-	Username  string `json:"username" `
-	Email     string `json:"email" `
-	Password  string `json:"password"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	BirthDate string `json:"birth_date"`
+	Username  string  `json:"username" `
+	Email     string  `json:"email" `
+	Password  string  `json:"password"`
+	FirstName string  `json:"first_name"`
+	LastName  string  `json:"last_name"`
+	BirthDate string  `json:"birth_date"`
+	Balance   float32 `json:"balance"`
+}
+
+type loginInfo struct {
+	Username  string  `json:"username" `
+	Email     string  `json:"email" `
+	FirstName string  `json:"first_name"`
+	LastName  string  `json:"last_name"`
+	Balance   float32 `json:"balance"`
 }
 
 type loginRequest struct {
 	User     string `json:"user" `
 	Password string `json:"password"`
+}
+
+type betSlipRequest struct {
+	Username string  `json:"username" `
+	Stake    float32 `json:"stake"`
+	Bets     []bet   `json:"elaboration"`
+}
+
+type bet struct {
+	OfferID int    `json:"offer"`
+	Tip     string `json:"tip"`
 }
 
 func (h *handler) GetLeagueOffers(w http.ResponseWriter, r *http.Request) {
@@ -65,64 +86,44 @@ func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error unmarshalling data from register form: %s", err)
 	}
-	var isValid = true
-	var user mysql.User
-	err = regReq.validateEmail()
+
+	isRegReqValid, err := validateRegistrationRequest(regReq)
 	if err != nil {
-		isValid = false
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	} else {
-		err = h.db.IsEmailUsed(regReq.Email)
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	isUserUnique, err := isUserUnique(h.db, regReq)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+	}
+
+	if isRegReqValid && isUserUnique {
+		passwordHash, err := hashPassword(regReq.Password)
 		if err != nil {
-			isValid = false
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		} else {
-			user.Email = regReq.Email
+			w.WriteHeader(http.StatusInternalServerError)
 		}
-	}
-
-	err = regReq.validateUsername()
-	if err != nil {
-		isValid = false
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	} else {
-		err = h.db.IsUsernameUsed(regReq.Username)
+		birthDate, err := time.Parse("02-01-2006", regReq.BirthDate)
 		if err != nil {
-			isValid = false
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		} else {
-			user.Username = regReq.Username
+			w.WriteHeader(http.StatusInternalServerError)
 		}
-	}
 
-	err = regReq.validatePassword()
-	if err != nil {
-		isValid = false
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	} else {
-		user.PasswordHash = string(hashPassword(regReq.Password))
-	}
-	err = regReq.validateName()
-	if err != nil {
-		isValid = false
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	} else {
-		user.FirstName = regReq.FirstName
-		user.LastName = regReq.LastName
-	}
+		user := mysql.User{
+			Email:        regReq.Email,
+			Username:     regReq.Username,
+			PasswordHash: passwordHash,
+			FirstName:    regReq.FirstName,
+			LastName:     regReq.LastName,
+			BirthDate:    birthDate,
+			Balance:      regReq.Balance,
+		}
+		err = h.db.InsertUser(user)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 
-	birthDate, err := regReq.validateBirthDate()
-	if err != nil {
-		isValid = false
-		http.Error(w, err.Error(), http.StatusBadRequest)
 	} else {
-		user.BirthDate = birthDate
-	}
-	if isValid {
-		h.db.InsertUser(user)
-		log.Printf("user inserted")
-	} else {
-		log.Printf("user not inserted")
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
@@ -137,10 +138,44 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error unmarshalling data from login form: %s", err)
 	}
-	err = h.checkUserAndPassword(logReq)
+
+	isValid, err := validateLoginRequest(logReq)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	} else {
-		log.Printf("login successful")
+		w.WriteHeader(http.StatusBadRequest)
 	}
+
+	if isValid {
+		user, err := h.validateUserAndPassword(logReq)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+		} else if (user != mysql.User{}) {
+			userInfo := loginInfo{
+				Email:     user.Email,
+				Username:  user.Username,
+				FirstName: user.FirstName,
+				LastName:  user.LastName,
+				Balance:   user.Balance,
+			}
+			json.NewEncoder(w).Encode(userInfo)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}
+}
+
+func (h *handler) BetSlip(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Error getting data from login form: %s", err)
+	}
+	var betSlip betSlipRequest
+	err = json.Unmarshal(body, &betSlip)
+	if err != nil {
+		log.Printf("Error unmarshalling data from bet slip request: %s", err)
+	}
+	// validate
+
+	//insert
+
 }

@@ -3,7 +3,6 @@ package mysql
 import (
 	"bettingAPI/internal/source"
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -74,13 +73,13 @@ type OfferByID struct {
 }
 
 type User struct {
-	ID           int       `db:"user_id"`
 	Username     string    `db:"username" `
 	Email        string    `db:"email" `
 	PasswordHash string    `db:"password_hash"`
 	FirstName    string    `db:"first_name"`
 	LastName     string    `db:"last_name"`
 	BirthDate    time.Time `db:"birth_date"`
+	Balance      float32   `db:"balance"`
 }
 
 func (d *DB) InsertOffers(offers []source.Offer) {
@@ -191,41 +190,33 @@ func (d *DB) GetOfferByID(offerID int) interface{} {
 	return offer
 }
 
-func (d *DB) IsUsernameUsed(username string) error {
-	row := d.conn.QueryRow("SELECT user_id FROM `bettingdb`.`users` WHERE `bettingdb`.`users`.`username`=?", username)
-	var userID int
-	err := row.Scan(&userID)
-	if err != sql.ErrNoRows {
-		return errors.New("username is used")
-	}
-	return nil
-}
-
-func (d *DB) IsEmailUsed(email string) error {
-	row := d.conn.QueryRow("SELECT email FROM `bettingdb`.`users` WHERE `bettingdb`.`users`.`email`=?", email)
-	var userEmail int
-	err := row.Scan(&userEmail)
-	if err != sql.ErrNoRows {
-		return errors.New("email is already used")
-	}
-	return nil
-}
-
-func (d *DB) StoredUserPassword(user string) string {
-	row := d.conn.QueryRow("SELECT password_hash FROM `bettingdb`.`users` WHERE `bettingdb`.`users`.`email`=? OR `bettingdb`.`users`.`username`=?", user, user)
-	var passwordHash string
-	err := row.Scan(&passwordHash)
-	if err == nil {
-		return passwordHash
-	}
-	return ""
-}
-
-func (d *DB) InsertUser(regReq User) {
-	var user = regReq
-	query := "INSERT INTO `bettingdb`.`users`(username, email,  password_hash, first_name, last_name, birth_date) VALUES(?,?,?,?,?,?)"
-	_, err := d.conn.Exec(query, user.Username, user.Email, user.PasswordHash, user.FirstName, user.LastName, user.BirthDate)
+func (d *DB) FindUserByUsername(username string) (User, error) {
+	row := d.conn.QueryRow("SELECT username, email, first_name, last_name, password_hash, balance FROM `bettingdb`.`users` WHERE `bettingdb`.`users`.`username`=?", username)
+	var user User
+	err := row.Scan(&user.Username, &user.Email, &user.FirstName, &user.LastName, &user.PasswordHash, &user.Balance)
 	if err != nil {
-		log.Printf("impossible to insert offers: %s", err)
+		return User{}, err
 	}
+	return user, nil
+}
+
+func (d *DB) FindUserByEmail(email string) (User, error) {
+	row := d.conn.QueryRow("SELECT username, email, first_name, last_name, password_hash, balance FROM `bettingdb`.`users` WHERE `bettingdb`.`users`.`email`=?", email)
+	var user User
+	err := row.Scan(&user.Username, &user.Email, &user.FirstName, &user.LastName, &user.PasswordHash, &user.Balance)
+	if err != nil {
+		return User{}, err
+	}
+	return user, nil
+}
+
+func (d *DB) InsertUser(regReq User) error {
+	var user = regReq
+	query := "INSERT INTO `bettingdb`.`users`(username, email,  password_hash, first_name, last_name, birth_date, balance) VALUES(?,?,?,?,?,?,?)"
+	_, err := d.conn.Exec(query, user.Username, user.Email, user.PasswordHash, user.FirstName, user.LastName, user.BirthDate, user.Balance)
+	if err != nil {
+		log.Printf("impossible to insert user: %s", err)
+		return err
+	}
+	return nil
 }

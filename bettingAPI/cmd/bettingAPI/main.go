@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -21,9 +22,13 @@ func main() {
 	db.InsertLeagues(source.GetAllLeaguesFromSource())
 
 	router := mux.NewRouter()
+	headers := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
+	methods := handlers.AllowedMethods([]string{"GET", "POST"})
+	origins := handlers.AllowedOrigins([]string{"*"})
 	router.HandleFunc("/league-offers", hdl.GetLeagueOffers).Methods("GET")
 	router.HandleFunc("/offer/{id}", hdl.GetOffer).Methods("GET")
 	router.HandleFunc("/register", hdl.Register).Methods("POST")
 	router.HandleFunc("/login", hdl.Login).Methods("POST")
-	log.Fatal(http.ListenAndServe("localhost:5000", router))
+	router.HandleFunc("/bet_slip", hdl.BetSlip).Methods("POST")
+	log.Fatal(http.ListenAndServe("localhost:5000", handlers.CORS(headers, methods, origins)(router)))
 }

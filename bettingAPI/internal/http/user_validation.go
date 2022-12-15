@@ -2,116 +2,93 @@ package http
 
 import (
 	"bettingAPI/internal/mysql"
-	"errors"
 	"log"
 	"net/mail"
+	"strings"
 	"time"
 	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-func validateLoginRequest(logReq loginRequest) (bool, error) {
-	if IsUsernameValid(logReq.User) {
-		if IsPasswordValid(logReq.Password) {
-			return true, nil
-		}
+func isLoginRequestValid(logReq loginRequest) bool {
+	if (isUsernameValid(logReq.User) || isEmailValid(logReq.User)) && isPasswordValid(logReq.Password) {
+		return true
+	}
+	return false
+}
+
+func (h *handler) Login(user string, password string) (*mysql.User, error) {
+	var u *mysql.User
+	var err error
+	if IsEmail(user) {
+		u, err = h.db.FindUserByEmail(user)
 	} else {
-		isValid, err := IsEmailValid(logReq.User)
-		if err != nil {
-			return false, err
-		}
-		if isValid {
-			if IsPasswordValid(logReq.User) {
-				return true, nil
-			}
-		}
+		u, err = h.db.FindUserByUsername(user)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, nil
+	}
+	if checkPasswordHash(password, u.PasswordHash) {
+		return u, nil
+	}
+	return nil, nil
+}
+
+func IsEmail(user string) bool {
+	return strings.Contains(user, "@")
+}
+
+func validateRegistrationRequest(regReq registrationRequest) bool {
+	if !isEmailValid(regReq.Email) {
+		return false
+	}
+	if !isUsernameValid(regReq.Username) {
+		return false
+	}
+	if !isPasswordValid(regReq.Password) {
+		return false
+	}
+	if !isNameValid(regReq.FirstName, regReq.LastName) {
+		return false
+	}
+	if !isBirthDateValid(regReq.BirthDate) {
+		return false
+	}
+	return true
+}
+
+func (h *handler) isEmailUnique(email string) (bool, error) {
+	user, err := h.db.FindUserByEmail(email)
+	if err != nil {
+		return false, err
+	}
+	if user == nil {
+		return true, nil
 	}
 	return false, nil
 }
 
-func (h *handler) validateUserAndPassword(logReq loginRequest) (mysql.User, error) { // treba dohvatit cijelog usera pa odmah na cijelom useru provjeriti i password
-	user, err := h.db.FindUserByUsername(logReq.User)
-	if err != nil {
-		user = mysql.User{}
-	}
-	if user.Username == logReq.User {
-		if checkPasswordHash(logReq.Password, user.PasswordHash) {
-			return user, nil
-		} else {
-			return mysql.User{}, nil
-		}
-	}
-
-	user, err = h.db.FindUserByEmail(logReq.User)
-	if err != nil {
-		user = mysql.User{}
-	}
-	if user.Email == logReq.User {
-		if checkPasswordHash(logReq.Password, user.PasswordHash) {
-			return user, nil
-		} else {
-			return mysql.User{}, nil
-		}
-	}
-	return user, err
-}
-
-func validateRegistrationRequest(regReq registrationRequest) (bool, error) {
-	isValid, err := IsEmailValid(regReq.Email)
+func (h *handler) isUsernameUnique(username string) (bool, error) {
+	user, err := h.db.FindUserByUsername(username)
 	if err != nil {
 		return false, err
 	}
-	if !isValid {
-		return false, nil
+	if user == nil {
+		return true, nil
 	}
-	if !IsUsernameValid(regReq.Username) {
-		return false, nil
-	}
-	if !IsPasswordValid(regReq.Password) {
-		return false, nil
-	}
-	if !IsNameValid(regReq.FirstName, regReq.LastName) {
-		return false, nil
-	}
-	isValid, err = IsBirthDateValid(regReq.BirthDate)
-	if err != nil {
-		return false, err
-	}
-	if !isValid {
-		return false, nil
-	}
-	return true, nil
+	return false, nil
 }
 
-func isUserUnique(db *mysql.DB, regReq registrationRequest) (bool, error) {
-	user, err := db.FindUserByUsername(regReq.Username)
-	var isUnique = false
-	if err != nil {
-		isUnique = true
-	}
-	if user.Username == regReq.Username {
-		return false, errors.New("username taken")
-	}
-	user, err = db.FindUserByEmail(regReq.Email)
-	if err != nil {
-		isUnique = true
-	}
-	if user.Email == regReq.Email {
-		return false, errors.New("email taken")
-	}
-	return isUnique, nil
-}
-
-func IsEmailValid(email string) (bool, error) {
+func isEmailValid(email string) bool {
 	_, err := mail.ParseAddress(email)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
+	return err == nil
 }
 
-func IsUsernameValid(username string) bool {
+func isUsernameValid(username string) bool {
 	if 3 >= len(username) || len(username) >= 20 {
 		return false
 	}
@@ -125,7 +102,7 @@ func IsUsernameValid(username string) bool {
 	return true
 }
 
-func IsPasswordValid(password string) bool {
+func isPasswordValid(password string) bool {
 	var pswdLowercase, pswdUppercase, pswdNumber, pswdSpecial, pswdLength, pswdNoSpaces bool
 	pswdNoSpaces = true
 	for _, char := range password {
@@ -151,7 +128,7 @@ func IsPasswordValid(password string) bool {
 	return true
 }
 
-func IsNameValid(firstName string, lastName string) bool {
+func isNameValid(firstName string, lastName string) bool {
 	for _, char := range firstName {
 		if !unicode.IsLetter(char) {
 			return false
@@ -165,17 +142,14 @@ func IsNameValid(firstName string, lastName string) bool {
 	return true
 }
 
-func IsBirthDateValid(birthDate string) (bool, error) {
-	birthDate2, err := time.Parse("02-01-2006", birthDate)
+func isBirthDateValid(birthDate string) bool {
+	bd, err := time.Parse("02-01-2006", birthDate)
 	if err != nil {
 		log.Println("Error parsing time")
-		return false, err
+		return false
 	}
 	currentTime := time.Now().AddDate(-18, 0, 0)
-	if birthDate2.Before(currentTime) {
-		return true, nil
-	}
-	return false, nil
+	return bd.Before(currentTime)
 }
 
 func hashPassword(password string) (string, error) { // isto treba vracat error, status 500

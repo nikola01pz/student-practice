@@ -27,8 +27,8 @@ func main() {
 	origins := handlers.AllowedOrigins([]string{"*"})
 	router.HandleFunc("/league-offers", hdl.GetLeagueOffers).Methods("GET")
 	router.HandleFunc("/offer/{id}", hdl.GetOffer).Methods("GET")
-	router.HandleFunc("/register", hdl.Register).Methods("POST")
-	router.HandleFunc("/login", hdl.Login).Methods("POST")
-	router.HandleFunc("/bet_slip", hdl.BetSlip).Methods("POST")
+	router.HandleFunc("/register", hdl.HandleRegisterRequest).Methods("POST")
+	router.HandleFunc("/login", hdl.HandleLoginRequest).Methods("POST")
+	router.HandleFunc("/bet_slip", hdl.HandleBetSlip).Methods("POST")
 	log.Fatal(http.ListenAndServe("localhost:5000", handlers.CORS(headers, methods, origins)(router)))
 }

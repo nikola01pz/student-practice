@@ -102,10 +102,10 @@ type OfferTip struct {
 type BetSlipRequest struct {
 	Username string  `json:"username" `
 	Stake    float32 `json:"stake"`
-	Bets     []bet   `json:"bets"`
+	Bets     []Bet   `json:"bets"`
 }
 
-type bet struct {
+type Bet struct {
 	OfferID int    `json:"offer"`
 	Tip     string `json:"tip"`
 }
@@ -275,7 +275,7 @@ func (d *DB) InsertUser(regReq User) error {
 	return nil
 }
 
-func (d *DB) GetOfferTipCoefficients(bets []bet) []OfferTip {
+func (d *DB) GetOfferTipCoefficients(bets []Bet) []OfferTip {
 	var offerTips []OfferTip
 	for i := range bets {
 		query := "SELECT offer_id, tip, coefficient FROM `bettingdb`.`offer_tips` WHERE `bettingdb`.`offer_tips`.`offer_id`=? AND `bettingdb`.`offer_tips`.`tip`=?"
@@ -295,6 +295,25 @@ func (d *DB) GetOfferTipCoefficients(bets []bet) []OfferTip {
 	return offerTips
 }
 
+func (d *DB) UpdateUserBalance(userID int, stake float32) error {
+	query2 := "SELECT balance FROM `bettingdb`.`users` where `bettingdb`.`users`.`id`=?"
+	row := d.conn.QueryRow(query2, userID)
+	var userBalance float32
+	err := row.Scan(&userBalance)
+	if err != nil {
+		log.Printf("Impossible to select user balance: %s", err)
+		return err
+	}
+	updatedUserBalance := int(userBalance) - int(stake)
+	query3 := "UPDATE `bettingdb`.`users` SET `bettingdb`.`users`.`balance`=? WHERE `bettingdb`.`users`.`id`=?"
+	_, err = d.conn.Exec(query3, updatedUserBalance, userID)
+	if err != nil {
+		log.Printf("Impossible to update user balance: %s", err)
+		return err
+	}
+	return nil
+}
+
 func (d *DB) InsertUserBetSlip(userBetSlip UserBetSlip, betSlip BetSlipRequest) error { // prvo insert listica pa onda insertaj pripadajuce betove na temelju lastinsertid
 	query1 := "INSERT INTO `bettingdb`.`user_bet_slips`(user_id, stake, payout) VALUES(?,?,?)"
 	res, err := d.conn.Exec(query1, userBetSlip.UserID, userBetSlip.Stake, userBetSlip.Payout)
@@ -302,13 +321,14 @@ func (d *DB) InsertUserBetSlip(userBetSlip UserBetSlip, betSlip BetSlipRequest) 
 		log.Printf("impossible to insert user: %s", err)
 		return err
 	}
-	_, err = res.RowsAffected() // _ je ra
+	ra, err := res.RowsAffected()
 	if err != nil {
-		log.Printf("Impossible to insert user bet slip: %s", err)
+		log.Printf("Impossible to insert leagues: %s", err)
 	}
-	// if ra == 0 {
-	// 	continue
-	// }
+	if ra == 0 {
+		return nil
+	}
+
 	offerTips := d.GetOfferTipCoefficients(betSlip.Bets)
 	for i := range offerTips {
 		q := "INSERT INTO `bettingdb`.`bet`(user_bet_slip_id, offer_id, tip, coefficient) VALUES(?,?,?,?)"

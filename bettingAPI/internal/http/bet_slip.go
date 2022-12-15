@@ -19,3 +19,16 @@ func (h *handler) isPayoutLimitReached(betSlip mysql.BetSlipRequest) (float32, b
 	var maxPayout float32 = 10000
 	return payout, payout > maxPayout
 }
+
+func hasOnlyOneTipPerOffer(bets []mysql.Bet) bool {
+	for i := range bets {
+		for j := range bets {
+			if i != j {
+				if bets[i].OfferID == bets[j].OfferID {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}

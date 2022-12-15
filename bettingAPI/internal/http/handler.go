@@ -151,8 +151,6 @@ func (h *handler) HandleRegisterRequest(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
-// func HandleAndUnmarshalIncomingData(w http.ResponseWriter, r *http.Request, target interface{})
-
 func (h *handler) HandleLoginRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json") // ponavlja se pa izvuc u posebnu funkciju
 	body, err := io.ReadAll(r.Body)
@@ -213,12 +211,16 @@ func (h *handler) HandleBetSlip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := h.db.FindBetUserByUsername(betSlip.Username)
-	if err != nil || user == nil {
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	if user == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-	if !hasSufficientFunds(int(user.Balance)) {
+	if !hasSufficientFunds(int(user.Balance)) || !hasOnlyOneTipPerOffer(betSlip.Bets) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -234,7 +236,14 @@ func (h *handler) HandleBetSlip(w http.ResponseWriter, r *http.Request) {
 		Stake:  betSlip.Stake,
 		Payout: payout,
 	}
+
 	err = h.db.InsertUserBetSlip(userBetSlip, betSlip)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = h.db.UpdateUserBalance(userBetSlip.UserID, betSlip.Stake)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -29,6 +29,6 @@ func main() {
 	router.HandleFunc("/offer/{id}", hdl.GetOffer).Methods("GET")
 	router.HandleFunc("/register", hdl.HandleRegisterRequest).Methods("POST")
 	router.HandleFunc("/login", hdl.HandleLoginRequest).Methods("POST")
-	router.HandleFunc("/bet_slip", hdl.HandleBetSlip).Methods("POST")
+	router.HandleFunc("/bet_slip", hdl.HandleBetSlipRequest).Methods("POST")
 	log.Fatal(http.ListenAndServe("localhost:5000", handlers.CORS(headers, methods, origins)(router)))
 }

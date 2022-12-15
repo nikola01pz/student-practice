@@ -73,16 +73,6 @@ type OfferByID struct {
 }
 
 type User struct {
-	Username     string    `db:"username" `
-	Email        string    `db:"email" `
-	PasswordHash string    `db:"password_hash"`
-	FirstName    string    `db:"first_name"`
-	LastName     string    `db:"last_name"`
-	BirthDate    time.Time `db:"birth_date"`
-	Balance      float32   `db:"balance"`
-}
-
-type BetUser struct {
 	ID           int       `db:"id"`
 	Username     string    `db:"username" `
 	Email        string    `db:"email" `
@@ -111,10 +101,11 @@ type Bet struct {
 }
 
 type UserBetSlip struct {
-	ID     int     `db:"id"`
-	UserID int     `db:"user_id"`
-	Stake  float32 `db:"stake"`
-	Payout float32 `db:"payout"`
+	ID          int     `db:"id"`
+	UserID      int     `db:"user_id"`
+	Stake       float32 `db:"stake"`
+	Coefficient float32 `db:"Coefficient"`
+	Payout      float32 `db:"payout"`
 }
 
 func (d *DB) InsertOffers(offers []source.Offer) {
@@ -239,21 +230,8 @@ func (d *DB) FindUserByEmail(email string) (*User, error) {
 }
 
 func (d *DB) FindUserByUsername(username string) (*User, error) { // moze vratit 3 slucaja
-	row := d.conn.QueryRow("SELECT username, email, first_name, last_name, password_hash, balance FROM `bettingdb`.`users` WHERE `bettingdb`.`users`.`username`=?", username)
-	var user User
-	err := row.Scan(&user.Username, &user.Email, &user.FirstName, &user.LastName, &user.PasswordHash, &user.Balance)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &user, nil
-}
-
-func (d *DB) FindBetUserByUsername(username string) (*BetUser, error) { // moze vratit 3 slucaja
 	row := d.conn.QueryRow("SELECT id,username, email, first_name, last_name, password_hash, balance FROM `bettingdb`.`users` WHERE `bettingdb`.`users`.`username`=?", username)
-	var user BetUser
+	var user User
 	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.FirstName, &user.LastName, &user.PasswordHash, &user.Balance)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -275,13 +253,14 @@ func (d *DB) InsertUser(regReq User) error {
 	return nil
 }
 
-func (d *DB) GetOfferTipCoefficients(bets []Bet) []OfferTip {
+func (d *DB) GetOfferTipCoefficients(bets []Bet) ([]OfferTip, error) {
 	var offerTips []OfferTip
 	for i := range bets {
 		query := "SELECT offer_id, tip, coefficient FROM `bettingdb`.`offer_tips` WHERE `bettingdb`.`offer_tips`.`offer_id`=? AND `bettingdb`.`offer_tips`.`tip`=?"
 		rows, err := d.conn.Query(query, bets[i].OfferID, bets[i].Tip)
 		if err != nil {
 			log.Printf("Impossible to select from offer_tips table for coefficient: %s", err)
+			return nil, err
 		}
 		defer rows.Close()
 		for rows.Next() {
@@ -292,21 +271,12 @@ func (d *DB) GetOfferTipCoefficients(bets []Bet) []OfferTip {
 			offerTips = append(offerTips, ot)
 		}
 	}
-	return offerTips
+	return offerTips, nil
 }
 
-func (d *DB) UpdateUserBalance(userID int, stake float32) error {
-	query2 := "SELECT balance FROM `bettingdb`.`users` where `bettingdb`.`users`.`id`=?"
-	row := d.conn.QueryRow(query2, userID)
-	var userBalance float32
-	err := row.Scan(&userBalance)
-	if err != nil {
-		log.Printf("Impossible to select user balance: %s", err)
-		return err
-	}
-	updatedUserBalance := int(userBalance) - int(stake)
-	query3 := "UPDATE `bettingdb`.`users` SET `bettingdb`.`users`.`balance`=? WHERE `bettingdb`.`users`.`id`=?"
-	_, err = d.conn.Exec(query3, updatedUserBalance, userID)
+func (d *DB) UpdateUserBalance(user User, updatedUserBalance float32) error {
+	query := "UPDATE `bettingdb`.`users` SET `bettingdb`.`users`.`balance`=? WHERE `bettingdb`.`users`.`id`=?"
+	_, err := d.conn.Exec(query, updatedUserBalance, user.ID)
 	if err != nil {
 		log.Printf("Impossible to update user balance: %s", err)
 		return err
@@ -315,8 +285,8 @@ func (d *DB) UpdateUserBalance(userID int, stake float32) error {
 }
 
 func (d *DB) InsertUserBetSlip(userBetSlip UserBetSlip, betSlip BetSlipRequest) error { // prvo insert listica pa onda insertaj pripadajuce betove na temelju lastinsertid
-	query1 := "INSERT INTO `bettingdb`.`user_bet_slips`(user_id, stake, payout) VALUES(?,?,?)"
-	res, err := d.conn.Exec(query1, userBetSlip.UserID, userBetSlip.Stake, userBetSlip.Payout)
+	query1 := "INSERT INTO `bettingdb`.`user_bet_slips`(user_id, stake, coefficient, payout) VALUES(?,?,?,?)"
+	res, err := d.conn.Exec(query1, userBetSlip.UserID, userBetSlip.Stake, userBetSlip.Coefficient, userBetSlip.Payout)
 	if err != nil {
 		log.Printf("impossible to insert user: %s", err)
 		return err
@@ -324,19 +294,24 @@ func (d *DB) InsertUserBetSlip(userBetSlip UserBetSlip, betSlip BetSlipRequest) 
 	ra, err := res.RowsAffected()
 	if err != nil {
 		log.Printf("Impossible to insert leagues: %s", err)
+		return err
 	}
 	if ra == 0 {
 		return nil
 	}
 
-	offerTips := d.GetOfferTipCoefficients(betSlip.Bets)
+	offerTips, err := d.GetOfferTipCoefficients(betSlip.Bets)
+	if err != nil {
+		return err
+	}
+	user_bet_slip_id, err := res.LastInsertId()
+	if err != nil {
+		log.Printf("Impossible to get last insert id: %s", err)
+		return err
+	}
 	for i := range offerTips {
 		q := "INSERT INTO `bettingdb`.`bet`(user_bet_slip_id, offer_id, tip, coefficient) VALUES(?,?,?,?)"
-		user_bet_slip_id, err := res.LastInsertId()
-		if err != nil {
-			log.Printf("Impossible to get last insert id: %s", err)
-			return err
-		}
+
 		_, err = d.conn.Exec(q, user_bet_slip_id, offerTips[i].OfferID, offerTips[i].Tip, offerTips[i].Coefficient)
 		if err != nil {
 			log.Printf("Impossible to insert league offer: %s", err)

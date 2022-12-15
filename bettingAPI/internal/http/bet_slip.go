@@ -1,23 +1,27 @@
 package http
 
-import "bettingAPI/internal/mysql"
+import (
+	"bettingAPI/internal/mysql"
+)
 
-func isStakeSufficient(stake int) bool {
+func isStakeSufficient(stake float32) bool {
 	return stake >= 2
 }
 
-func hasSufficientFunds(balance int) bool {
-	return balance >= 2
+func hasSufficientFunds(balance, stake float32) bool {
+	return balance >= stake
 }
 
-func (h *handler) isPayoutLimitReached(betSlip mysql.BetSlipRequest) (float32, bool) {
-	offerTips := h.db.GetOfferTipCoefficients(betSlip.Bets)
-	var payout float32 = 0.0
-	for i := range offerTips {
-		payout += betSlip.Stake * float32(offerTips[i].Coefficient)
+func (h *handler) calculateTotalCoefficient(betSlip mysql.BetSlipRequest) (float32, error) {
+	offerTips, err := h.db.GetOfferTipCoefficients(betSlip.Bets)
+	if err != nil {
+		return 0, err
 	}
-	var maxPayout float32 = 10000
-	return payout, payout > maxPayout
+	var totalCoefficient float32 = 1.0
+	for i := range offerTips {
+		totalCoefficient = totalCoefficient * float32(offerTips[i].Coefficient)
+	}
+	return totalCoefficient, nil
 }
 
 func hasOnlyOneTipPerOffer(bets []mysql.Bet) bool {

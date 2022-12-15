@@ -42,7 +42,7 @@ func IsEmail(user string) bool {
 	return strings.Contains(user, "@")
 }
 
-func validateRegistrationRequest(regReq registrationRequest) bool {
+func isRegistrationRequestValid(regReq registrationRequest) bool {
 	if !isEmailValid(regReq.Email) {
 		return false
 	}
@@ -66,10 +66,7 @@ func (h *handler) isEmailUnique(email string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if user == nil {
-		return true, nil
-	}
-	return false, nil
+	return user == nil, nil
 }
 
 func (h *handler) isUsernameUnique(username string) (bool, error) {
@@ -77,10 +74,7 @@ func (h *handler) isUsernameUnique(username string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if user == nil {
-		return true, nil
-	}
-	return false, nil
+	return user == nil, nil
 }
 
 func isEmailValid(email string) bool {

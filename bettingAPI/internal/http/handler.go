@@ -78,9 +78,33 @@ func (h *handler) GetOffer(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(offer)
 }
 
-func (h *handler) HandleRegisterRequest(w http.ResponseWriter, r *http.Request) {
+func HandleAndUnmarshalIncomingData(w http.ResponseWriter, r *http.Request, target interface{}) (interface{}, error) {
 	w.Header().Set("Content-Type", "application/json")
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Error getting data from login form: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return nil, err
+	}
+	err = json.Unmarshal(body, &target)
+	if err != nil {
+		log.Printf("Error unmarshalling data from login form: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return nil, err
+	}
+	return target, nil
+}
 
+func (h *handler) HandleRegisterRequest(w http.ResponseWriter, r *http.Request) {
+	// var logReq loginRequest
+	// lr, err := HandleAndUnmarshalIncomingData(w, r, logReq)
+
+	// logReq = loginRequest{
+	// 	User:     lr.User,
+	// 	Password: lr.Password,
+	// }
+
+	w.Header().Set("Content-Type", "application/json")
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("Error getting data from register form: %s", err)
@@ -94,8 +118,7 @@ func (h *handler) HandleRegisterRequest(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	isRegReqValid := validateRegistrationRequest(regReq)
-	if !isRegReqValid {
+	if !isRegistrationRequestValid(regReq) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -177,6 +200,10 @@ func (h *handler) HandleLoginRequest(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	if user == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	userInfo := loginInfo{
 		Email:     user.Email,
@@ -189,7 +216,7 @@ func (h *handler) HandleLoginRequest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *handler) HandleBetSlip(w http.ResponseWriter, r *http.Request) {
+func (h *handler) HandleBetSlipRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -205,12 +232,12 @@ func (h *handler) HandleBetSlip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !isStakeSufficient(int(betSlip.Stake)) {
+	if !isStakeSufficient(betSlip.Stake) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	user, err := h.db.FindBetUserByUsername(betSlip.Username)
+	user, err := h.db.FindUserByUsername(betSlip.Username)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -220,21 +247,28 @@ func (h *handler) HandleBetSlip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !hasSufficientFunds(int(user.Balance)) || !hasOnlyOneTipPerOffer(betSlip.Bets) {
+	if !hasSufficientFunds(user.Balance, betSlip.Stake) || !hasOnlyOneTipPerOffer(betSlip.Bets) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	payout, isReached := h.isPayoutLimitReached(betSlip)
-	if isReached {
+	totalCoefficient, err := h.calculateTotalCoefficient(betSlip)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	payout := totalCoefficient * betSlip.Stake
+	if payout > 10000 {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	userBetSlip := mysql.UserBetSlip{
-		UserID: user.ID,
-		Stake:  betSlip.Stake,
-		Payout: payout,
+		UserID:      user.ID,
+		Stake:       betSlip.Stake,
+		Coefficient: totalCoefficient,
+		Payout:      payout,
 	}
 
 	err = h.db.InsertUserBetSlip(userBetSlip, betSlip)
@@ -243,7 +277,7 @@ func (h *handler) HandleBetSlip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.db.UpdateUserBalance(userBetSlip.UserID, betSlip.Stake)
+	err = h.db.UpdateUserBalance(*user, user.Balance-betSlip.Stake)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

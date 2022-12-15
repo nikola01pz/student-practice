@@ -50,6 +50,7 @@ create table user_bet_slips(
     id int primary key auto_increment,
 	user_id int,
 	stake decimal(6,2),
+    coefficient decimal(6,2),
     payout decimal(7,2),
     constraint fk_user_bet_slips_from_users foreign key(user_id) references users(id)
 );
